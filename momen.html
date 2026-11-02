@@ -187,7 +187,7 @@
                 <i class="fa-solid fa-cloud-arrow-up"></i> Upload Foto
                 <input type="file" id="fileInput" multiple accept="image/*">
             </label>
-            <div id="statusMsg" class="status-msg">Memproses upload ke Cloud...</div>
+            <div id="statusMsg" class="status-msg">Memproses upload...</div>
         </div>
 
         <div class="drive-header">
@@ -203,7 +203,6 @@
     </div>
 
     <script>
-        // === GANTI 2 DATA DI BAWAH SESUAI DASHBOARD CLOUDINARY-MU ===
         const CLOUD_NAME = "dsqtmo7b"; 
         const UPLOAD_PRESET = "momen_kelas12"; 
         const TAG_NAME = "momen_kelas12";
@@ -214,22 +213,12 @@
         const photoCount = document.getElementById('photoCount');
         const statusMsg = document.getElementById('statusMsg');
 
-        async function fetchPublicPhotos() {
-            try {
-                const response = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json`);
-                if (!response.ok) throw new Error('Belum ada data');
-                const data = await response.json();
-                renderPhotos(data.resources);
-            } catch (err) {
-                console.log("Belum ada foto ter-tag atau Resource List belum diaktifkan.");
-                renderPhotos([]);
-            }
-        }
+        let localPhotos = JSON.parse(localStorage.getItem('cloudinary_photos') || '[]');
 
-        function renderPhotos(resources) {
+        function renderPhotos() {
             driveGrid.innerHTML = '';
             
-            if (!resources || resources.length === 0) {
+            if (localPhotos.length === 0) {
                 driveGrid.appendChild(emptyState);
                 emptyState.style.display = 'block';
                 photoCount.textContent = '0';
@@ -237,22 +226,44 @@
             }
 
             emptyState.style.display = 'none';
-            photoCount.textContent = resources.length;
+            photoCount.textContent = localPhotos.length;
 
-            resources.forEach(img => {
-                const imgUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/v${img.version}/${img.public_id}.${img.format}`;
+            localPhotos.forEach((img, idx) => {
                 const card = document.createElement('div');
                 card.className = 'drive-card';
                 card.innerHTML = `
-                    <a href="${imgUrl}" target="_blank">
-                        <img src="${imgUrl}" class="drive-thumb" alt="Momen foto">
+                    <a href="${img.url}" target="_blank">
+                        <img src="${img.url}" class="drive-thumb" alt="Momen foto">
                     </a>
                     <div class="drive-info">
-                        <span class="drive-name">Momen #${img.public_id.substring(0, 8)}</span>
+                        <span class="drive-name">${img.name || 'Momen #' + (idx + 1)}</span>
                     </div>
                 `;
                 driveGrid.appendChild(card);
             });
+        }
+
+        async function fetchPublicPhotos() {
+            try {
+                const response = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const cloudList = data.resources.map(img => ({
+                        url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/v${img.version}/${img.public_id}.${img.format}`,
+                        name: `Momen #${img.public_id.substring(0, 6)}`
+                    }));
+                    // Gabungkan foto dari cloud tanpa duplikat
+                    cloudList.forEach(c => {
+                        if (!localPhotos.some(l => l.url === c.url)) {
+                            localPhotos.push(c);
+                        }
+                    });
+                    localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
+                }
+            } catch (err) {
+                console.log("Menampilkan galeri dari respon upload langsung.");
+            }
+            renderPhotos();
         }
 
         fileInput.addEventListener('change', async function(e) {
@@ -260,7 +271,7 @@
             if (files.length === 0) return;
 
             statusMsg.style.display = 'block';
-            statusMsg.textContent = 'Mengupload foto ke server cloud...';
+            statusMsg.textContent = 'Mengupload foto ke Cloudinary...';
 
             for (const file of files) {
                 const formData = new FormData();
@@ -269,20 +280,30 @@
                 formData.append('tags', TAG_NAME);
 
                 try {
-                    await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+                    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
                         method: 'POST',
                         body: formData
                     });
+                    
+                    const data = await response.json();
+                    
+                    if (data.secure_url) {
+                        // Kunci Perbaikan: Tangkap URL dari Cloudinary & langsung tampilkan di layar!
+                        localPhotos.unshift({
+                            url: data.secure_url,
+                            name: file.name
+                        });
+                    }
                 } catch (err) {
                     console.error('Gagal upload:', err);
                 }
             }
 
-            statusMsg.textContent = 'Upload berhasil!';
+            localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
+            renderPhotos();
+
+            statusMsg.textContent = 'Berhasil! Foto langsung tampil.';
             setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
-            
-            // Refresh galeri
-            fetchPublicPhotos();
             fileInput.value = '';
         });
 
