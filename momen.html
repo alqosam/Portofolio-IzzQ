@@ -260,7 +260,7 @@
 
         // Fungsi Hapus Foto dengan Konfirmasi Dialog
         function deletePhoto(index) {
-            const yakin = confirm("Apakah Paduka Osa yakin mau menghapus foto ini?");
+            const yakin = confirm("Apakah Anda yakin menghapus foto ini?😭");
             if (yakin) {
                 localPhotos.splice(index, 1);
                 localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
@@ -295,7 +295,7 @@
             if (files.length === 0) return;
 
             statusMsg.style.display = 'block';
-            statusMsg.textContent = 'Mengupload foto ke Cloudinary...';
+            statusMsg.textContent = 'Mengupload foto...';
 
             for (const file of files) {
                 const formData = new FormData();
