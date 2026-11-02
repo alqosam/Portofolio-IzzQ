@@ -141,6 +141,9 @@
         .drive-info {
             padding: 0.75rem 1rem;
             background: rgba(15, 23, 42, 0.8);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .drive-name {
@@ -150,8 +153,19 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 130px;
             display: block;
         }
+
+        .delete-btn {
+            color: #ef4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .delete-btn:hover { color: #f87171; }
 
         .empty-state {
             text-align: center;
@@ -236,11 +250,19 @@
                         <img src="${img.url}" class="drive-thumb" alt="Momen foto">
                     </a>
                     <div class="drive-info">
-                        <span class="drive-name">${img.name || 'Momen #' + (idx + 1)}</span>
+                        <span class="drive-name" title="${img.name}">${img.name || 'Momen #' + (idx + 1)}</span>
+                        <button class="delete-btn" onclick="deletePhoto(${idx})" title="Hapus foto ini"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 `;
                 driveGrid.appendChild(card);
             });
+        }
+
+        // Fungsi Hapus Foto dari Galeri
+        function deletePhoto(index) {
+            localPhotos.splice(index, 1);
+            localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
+            renderPhotos();
         }
 
         async function fetchPublicPhotos() {
@@ -252,7 +274,6 @@
                         url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/v${img.version}/${img.public_id}.${img.format}`,
                         name: `Momen #${img.public_id.substring(0, 6)}`
                     }));
-                    // Gabungkan foto dari cloud tanpa duplikat
                     cloudList.forEach(c => {
                         if (!localPhotos.some(l => l.url === c.url)) {
                             localPhotos.push(c);
@@ -261,7 +282,7 @@
                     localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
                 }
             } catch (err) {
-                console.log("Menampilkan galeri dari respon upload langsung.");
+                console.log("Menampilkan galeri lokal.");
             }
             renderPhotos();
         }
@@ -288,7 +309,6 @@
                     const data = await response.json();
                     
                     if (data.secure_url) {
-                        // Kunci Perbaikan: Tangkap URL dari Cloudinary & langsung tampilkan di layar!
                         localPhotos.unshift({
                             url: data.secure_url,
                             name: file.name
