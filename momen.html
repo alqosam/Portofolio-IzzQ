@@ -211,7 +211,7 @@
         <div class="drive-grid" id="driveGrid">
             <div class="empty-state" id="emptyState">
                 <i class="fa-solid fa-images" style="font-size: 2.5rem; margin-bottom: 0.8rem; color: var(--accent);"></i>
-                <p>Belum ada foto publik. Klik <strong>Upload Foto</strong> untuk menambahkan foto pertama!</p>
+                <p>Belum ada foto. Klik <strong>Upload Foto</strong> untuk menambahkan foto pertama!</p>
             </div>
         </div>
     </div>
@@ -258,11 +258,14 @@
             });
         }
 
-        // Fungsi Hapus Foto dari Galeri
+        // Fungsi Hapus Foto dengan Konfirmasi Dialog
         function deletePhoto(index) {
-            localPhotos.splice(index, 1);
-            localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
-            renderPhotos();
+            const yakin = confirm("Apakah Paduka Osa yakin mau menghapus foto ini?");
+            if (yakin) {
+                localPhotos.splice(index, 1);
+                localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
+                renderPhotos();
+            }
         }
 
         async function fetchPublicPhotos() {
@@ -322,7 +325,7 @@
             localStorage.setItem('cloudinary_photos', JSON.stringify(localPhotos));
             renderPhotos();
 
-            statusMsg.textContent = 'Berhasil! Foto langsung tampil.';
+            statusMsg.textContent = 'Complete!';
             setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
             fileInput.value = '';
         });
